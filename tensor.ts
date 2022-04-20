@@ -1,6 +1,10 @@
 export class Tensor<Dimensions extends readonly number[]> {
   values: any[];
 
+  constructor(values: any[]) {
+    this.values = values;
+  }
+
   protected is1D(tensor: Tensor<any>): tensor is Tensor<[number]> {
     return typeof tensor.values[0] === 'number';
   }
