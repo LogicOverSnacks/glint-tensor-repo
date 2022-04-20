@@ -1,5 +1,9 @@
 {
   "name": "tensor-play",
   "dependencies": {
+    "ramda": "^0.28.0"
+  },
+  "devDependencies": {
+    "@types/ramda": "^0.28.11"
   }
 }
