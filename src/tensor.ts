@@ -1,25 +1,34 @@
-type ReduceDimension<T extends readonly any[]> = T extends readonly [infer X, ...infer XS] ? XS : number[];
+import * as Ramda from 'ramda';
 
-type TensorValues<Dimensions extends readonly number[]> = Dimensions extends readonly []
-  ? number
-  : TensorValues<ReduceDimension<Dimensions>>[];
+import { TensorValues } from './utility';
 
-export class Tensor<Dimensions extends readonly number[]> {
+type WithoutLastDimension<D extends readonly number[]> = D extends readonly [...infer XS, infer X] ? XS : any;
+type LastDimension<D extends readonly number[]> = D extends readonly [...infer XS, infer X] ? X : any;
+
+export class Tensor<Dimension extends readonly number[]> {
   // prevent duck typing
-  private readonly θtensorDimensions?: Dimensions;
+  private readonly θtensorDimensions?: Dimension;
 
-  values: TensorValues<Dimensions>;
+  values: TensorValues<Dimension>;
 
-  constructor(values: TensorValues<Dimensions>) {
+  constructor(values: TensorValues<Dimension>) {
     this.values = values;
   }
 
-  add(rhs: number): Tensor<Dimensions> {
-    if (Tensor.isConstant(this)) {
-      return new Tensor<readonly []>(this.values + rhs) as unknown as Tensor<Dimensions>;
+  add(rhs: number | Tensor<Dimension>): Tensor<Dimension> {
+    if (typeof rhs === 'number') {
+      return new Tensor(Tensor.processConstant(this.values, rhs, (l, r) => l + r));
     }
 
-    return new Tensor(Tensor.addValues(this.values, rhs));
+    return new Tensor(Tensor.processValues(this.values, rhs.values, (l, r) => l + r));
+  }
+
+  hadamard(rhs: number | Tensor<Dimension>): Tensor<Dimension> {
+    if (typeof rhs === 'number') {
+      return new Tensor(Tensor.processConstant(this.values, rhs, (l, r) => l * r));
+    }
+
+    return new Tensor(Tensor.processValues(this.values, rhs.values, (l, r) => l * r));
   }
 
   protected static isConstant(tensor: Tensor<readonly number[]>): tensor is Tensor<readonly []> {
@@ -38,8 +47,23 @@ export class Tensor<Dimensions extends readonly number[]> {
     return typeof tensor.values[0]?.[0]?.[0] === 'number';
   }
 
-  private static addValues = <D extends readonly number[]>(values: TensorValues<D>, rhs: number): TensorValues<D> =>
-    typeof values === 'number'
-      ? (values + rhs) as number as TensorValues<D>
-      : values.map(value => Tensor.addValues(value, rhs)) as TensorValues<D>;
+  private static processConstant = <D extends readonly number[]>(
+    lhs: TensorValues<D>,
+    rhs: number,
+    operator: (l: number, r: number) => number
+  ): TensorValues<D> =>
+    typeof lhs === 'number'
+      ? operator(lhs, rhs) as TensorValues<D>
+      : lhs.map((value: any) => Tensor.processConstant(value, rhs, operator)) as TensorValues<D>;
+
+  private static processValues = <D extends readonly number[]>(
+    lhs: TensorValues<D>,
+    rhs: TensorValues<D>,
+    operator: (l: number, r: number) => number
+  ): TensorValues<D> =>
+    typeof lhs === 'number' && typeof rhs === 'number'
+      ? operator(lhs, rhs) as TensorValues<D>
+      : Ramda
+        .zip(lhs, rhs)
+        .map(([l, r]) => Tensor.processValues(l, r, operator)) as TensorValues<D>;
 }
