@@ -1,3 +1,5 @@
+import * as Ramda from 'ramda';
+
 type ReduceDimension<T extends readonly any[]> = T extends readonly [infer X, ...infer XS] ? XS : number[];
 
 type TensorValues<Dimensions extends readonly number[]> = Dimensions extends readonly []
@@ -15,11 +17,11 @@ export class Tensor<Dimensions extends readonly number[]> {
   }
 
   add(rhs: number): Tensor<Dimensions> {
-    if (Tensor.isConstant(this)) {
-      return new Tensor<readonly []>(this.values + rhs) as unknown as Tensor<Dimensions>;
-    }
+    return new Tensor(Tensor.addConstant(this.values, rhs));
+  }
 
-    return new Tensor(Tensor.addValues(this.values, rhs));
+  hadamard(rhs: Tensor<Dimensions>): Tensor<Dimensions> {
+    return new Tensor(Tensor.multiplyValues(this.values, rhs.values));
   }
 
   protected static isConstant(tensor: Tensor<readonly number[]>): tensor is Tensor<readonly []> {
@@ -38,8 +40,15 @@ export class Tensor<Dimensions extends readonly number[]> {
     return typeof tensor.values[0]?.[0]?.[0] === 'number';
   }
 
-  private static addValues = <D extends readonly number[]>(values: TensorValues<D>, rhs: number): TensorValues<D> =>
+  private static addConstant = <D extends readonly number[]>(values: TensorValues<D>, rhs: number): TensorValues<D> =>
     typeof values === 'number'
       ? (values + rhs) as number as TensorValues<D>
-      : values.map(value => Tensor.addValues(value, rhs)) as TensorValues<D>;
+      : values.map(value => Tensor.addConstant(value, rhs)) as TensorValues<D>;
+
+  private static multiplyValues = <D extends readonly number[]>(lhs: TensorValues<D>, rhs: TensorValues<D>): TensorValues<D> =>
+    typeof lhs === 'number' && typeof rhs === 'number'
+      ? (lhs * rhs) as number as TensorValues<D>
+      : Ramda
+        .zip(lhs, rhs)
+        .map(([l, r]) => Tensor.multiplyValues(l, r)) as TensorValues<D>;
 }
