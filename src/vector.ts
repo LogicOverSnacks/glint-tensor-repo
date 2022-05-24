@@ -11,4 +11,11 @@ export class Vector<Rows extends number> extends Tensor<[Rows]> {
       .map(([l, r]) => l + r)
     );
   }
+
+  dotProduct(rhs: Tensor<[Rows]>): number {
+    return Ramda.sum(Ramda
+      .zip(this.values, rhs.values)
+      .map(([l, r]) => l * r)
+    );
+  }
 }
