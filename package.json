@@ -1,9 +1,16 @@
 {
   "name": "tensor-play",
+  "scripts": {
+    "test": "ts-node node_modules/jasmine/bin/jasmine --config=./jasmine.json"
+  },
   "dependencies": {
     "ramda": "^0.28.0"
   },
   "devDependencies": {
-    "@types/ramda": "^0.28.11"
+    "@types/jasmine": "^4.0.3",
+    "@types/ramda": "^0.28.11",
+    "jasmine": "~4.1.0",
+    "ts-node": "^10.8.0",
+    "typescript": "^4.7.2"
   }
 }
